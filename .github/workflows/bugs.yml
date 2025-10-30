@@ -1,0 +1,85 @@
+name: .NET CI/CD (Railway)
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+          cache: true
+
+      - name: Restore dependencies
+        run: dotnet restore BugStore.sln
+        working-directory: ./src
+
+      - name: Build
+        run: dotnet build BugStore.sln --no-restore -c Release
+        working-directory: ./src
+
+      - name: Test
+        run: dotnet test BugStore.sln --no-build -c Release --verbosity normal
+        working-directory: ./src
+
+      # Opcional: Publish + Upload do artefato (apenas para inspeção/backup do build)
+      - name: Publish API
+        run: dotnet publish -c Release -o ./publish
+        working-directory: ./src/BugStore.Api
+
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bugstore-api
+          path: ./src/BugStore.Api/publish
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node (for Railway CLI)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Railway CLI
+        run: npm i -g @railway/cli
+
+      - name: Link Railway project
+        working-directory: ./src/BugStore.Api
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway link --project ${{ vars.RAILWAY_PROJECT_ID }}
+
+      - name: Select Railway environment
+        working-directory: ./src/BugStore.Api
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway environment ${{ vars.RAILWAY_ENV_ID }}
+
+      - name: Deploy to Railway
+        working-directory: ./src/BugStore.Api
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway up --detach
