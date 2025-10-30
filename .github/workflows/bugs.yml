@@ -13,7 +13,6 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -35,24 +34,11 @@ jobs:
         run: dotnet test BugStore.sln --no-build -c Release --verbosity normal
         working-directory: ./src
 
-      # Opcional: Publish + Upload do artefato (apenas para inspeção/backup do build)
-      - name: Publish API
-        run: dotnet publish -c Release -o ./publish
-        working-directory: ./src/BugStore.Api
-
-      - name: Upload build artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: bugstore-api
-          path: ./src/BugStore.Api/publish
-
   deploy:
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment: production
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -65,20 +51,23 @@ jobs:
       - name: Install Railway CLI
         run: npm i -g @railway/cli
 
+      # Linka o projeto específico
       - name: Link Railway project
         working-directory: ./src/BugStore.Api
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: railway link --project ${{ vars.RAILWAY_PROJECT_ID }}
+        run: railway link --project ef350b04-c626-4039-a3ee-9d823b225792
 
+      # Seleciona o ambiente específico
       - name: Select Railway environment
         working-directory: ./src/BugStore.Api
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: railway environment ${{ vars.RAILWAY_ENV_ID }}
+        run: railway environment ff30ac94-5f21-4e4e-b2d3-50b873727d8b
 
-      - name: Deploy to Railway
+      # Opcional: fixar o serviço (ID da URL que você enviou)
+      - name: Deploy to Railway (service pinned)
         working-directory: ./src/BugStore.Api
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: railway up --detach
+        run: railway up --service aed77f3b-4f38-4d1f-9784-47748da7c530 --detach
