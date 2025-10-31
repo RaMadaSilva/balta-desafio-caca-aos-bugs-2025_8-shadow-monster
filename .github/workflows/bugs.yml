@@ -51,20 +51,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node (for Railway CLI)
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Install Railway CLI
-        run: npm i -g @railway/cli
-
+      # --- ALTERAÇÃO CHAVE: Usando a Ação Oficial do Railway CLI ---
       - name: Deploy to Railway
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-          RAILWAY_ENVIRONMENT_ID: ff30ac94-5f21-4e4e-b2d3-50b873727d8b
-        run: railway up --service BugStoreApi --detach
+        uses: railwayapp/cli-action@v3
+        with:
+          # O token é passado com segurança.
+          token: ${{ secrets.RAILWAY_TOKEN }}
+          # Comando para fazer o deploy.
+          command: up --service BugStoreApi --detach
+          # Se o seu Dockerfile e código estiverem em um subdiretório (ex: ./src/BugStore.Api),
+          # DESCOMENTE e ajuste a linha abaixo:
+          root-path: ./src
 
       - name: Verificar Status do Deploy
-        # Espera o deploy terminar no Railway antes de finalizar o workflow
-        run: railway status --wait
+        run: echo "Deploy iniciado. Verifique o status no painel do Railway."
