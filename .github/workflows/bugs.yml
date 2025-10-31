@@ -50,4 +50,21 @@ jobs:
       - name: Deploy to Railway
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+<<<<<<< HEAD
         run: railway up --project ef350b04-c626-4039-a3ee-9d823b225792 --detach
+=======
+        run: railway link --project ef350b04-c626-4039-a3ee-9d823b225792
+
+      # Seleciona o ambiente específico
+      - name: Select Railway environment
+        working-directory: ./src/BugStore.Api
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway environment ff30ac94-5f21-4e4e-b2d3-50b873727d8b
+
+      - name: Deploy to Railway (service pinned)
+        working-directory: ./src/BugStore.Api
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway up --service aed77f3b-4f38-4d1f-9784-47748da7c530 --detach
+>>>>>>> 6f41705d8db1b1d6dcc1080b1e5a9e646d82c9ad
