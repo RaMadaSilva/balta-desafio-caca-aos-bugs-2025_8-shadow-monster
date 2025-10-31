@@ -7,7 +7,7 @@ on:
     branches: ["main"]
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -18,7 +18,7 @@ jobs:
         with:
           dotnet-version: "9.0.x"
 
-      - name: Restore dependencies
+      - name: Restore
         run: dotnet restore BugStore.sln
         working-directory: ./src
 
@@ -27,12 +27,8 @@ jobs:
         working-directory: ./src
 
       - name: Test
-        run: dotnet test BugStore.sln --no-build -c Release --verbosity normal
+        run: dotnet test BugStore.sln --no-build -c Release
         working-directory: ./src
-
-      # Opcional: Validar Dockerfile
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
 
       - name: Validate Dockerfile
         uses: docker/build-push-action@v5
@@ -40,28 +36,21 @@ jobs:
           context: ./src
           file: ./src/BugStore.Api/Dockerfile
           push: false
-          tags: bugstore-api:test
+          tags: bugstore:test
 
   deploy:
-    needs: build
+    needs: build-and-test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment: production
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # --- ALTERAÇÃO CHAVE: Usando a Ação Oficial do Railway CLI ---
       - name: Deploy to Railway
-        uses: railwayapp/action-cli@v3
+        uses: railwayapp/deploy-action@v1
         with:
-          # O token é passado com segurança.
-          token: ${{ secrets.RAILWAY_TOKEN }}
-          # Comando para fazer o deploy.
-          command: up --service BugStoreApi --detach
-          # Se o seu Dockerfile e código estiverem em um subdiretório (ex: ./src/BugStore.Api),
-          # DESCOMENTE e ajuste a linha abaixo:
-          root-path: ./src
-
-      - name: Verificar Status do Deploy
-        run: echo "Deploy iniciado. Verifique o status no painel do Railway."
+          railway_token: ${{ secrets.RAILWAY_TOKEN }}
+          project_id: "70ef9ba2-4570-4897-99c9-e7d7300a515d"
+          service_id: "badd4cdb-d31f-4574-8e3a-3a47e48f460c" # SUBSTITUA PELO SEU SERVICE_ID
+          working_directory: "src/BugStore.Api" # Opcional, mas recomendado

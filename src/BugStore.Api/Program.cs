@@ -8,6 +8,8 @@ builder.Services.AddSwaggerDoc();
 builder.Services.AddDatabase(builder.Configuration);
 builder.Services.AddDependencyInjection();
 
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
 var app = builder.Build();
 
