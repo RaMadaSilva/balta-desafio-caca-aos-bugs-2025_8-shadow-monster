@@ -30,6 +30,18 @@ jobs:
         run: dotnet test BugStore.sln --no-build -c Release --verbosity normal
         working-directory: ./src
 
+      # Opcional: Validar Dockerfile
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate Dockerfile
+        uses: docker/build-push-action@v5
+        with:
+          context: ./src
+          file: ./src/BugStore.Api/Dockerfile
+          push: false
+          tags: bugstore-api:test
+
   deploy:
     needs: build
     runs-on: ubuntu-latest
@@ -51,4 +63,8 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
           RAILWAY_ENVIRONMENT_ID: ff30ac94-5f21-4e4e-b2d3-50b873727d8b
-        run: railway up --detach
+        run: railway up --service BugStoreApi --detach
+
+      - name: Verificar Status do Deploy
+        # Espera o deploy terminar no Railway antes de finalizar o workflow
+        run: railway status --wait
