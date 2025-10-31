@@ -28,11 +28,10 @@ RUN dotnet restore "./BugStore.Api/BugStore.Api.csproj" \
 # Agora copia todo o código fonte
 COPY . .
 
-# Compila o projeto
+# Compila o projeto (sem especificar -o, usa o local padrão bin/Release/net9.0/)
 WORKDIR "/src/BugStore.Api"
 RUN dotnet build "./BugStore.Api.csproj" \
     -c $BUILD_CONFIGURATION \
-    -o /app/build \
     --no-restore \
     --verbosity minimal \
     --nologo
@@ -42,6 +41,7 @@ RUN dotnet build "./BugStore.Api.csproj" \
 # ============================================
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
+WORKDIR "/src/BugStore.Api"
 RUN dotnet publish "./BugStore.Api.csproj" \
     -c $BUILD_CONFIGURATION \
     -o /app/publish \
