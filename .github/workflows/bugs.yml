@@ -50,5 +50,5 @@ jobs:
       - name: Deploy to Railway
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-          RAILWAY_ENVIRONMENT: ff30ac94-5f21-4e4e-b2d3-50b873727d8b
+          RAILWAY_ENVIRONMENT_ID: ff30ac94-5f21-4e4e-b2d3-50b873727d8b
         run: railway up --detach
