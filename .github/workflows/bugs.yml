@@ -2,55 +2,52 @@ name: .NET CI/CD (Railway)
 
 on:
   push:
-    branches: ["main"]
+    branches: [main]
   pull_request:
-    branches: ["main"]
+    branches: [main]
 
 jobs:
-  build-and-test:
+  build-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "9.0.x"
+          dotnet-version: 9.0.x
 
       - name: Restore
-        run: dotnet restore BugStore.sln
-        working-directory: ./src
+        run: dotnet restore ./src/BugStore.sln
 
       - name: Build
-        run: dotnet build BugStore.sln --no-restore -c Release
-        working-directory: ./src
+        run: dotnet build ./src/BugStore.sln --no-restore -c Release
 
       - name: Test
-        run: dotnet test BugStore.sln --no-build -c Release
-        working-directory: ./src
+        run: dotnet test ./src/BugStore.sln --no-build -c Release
 
-      - name: Validate Dockerfile
+      - name: Validate Docker
         uses: docker/build-push-action@v5
         with:
-          context: ./src
+          context: ./src/BugStore.Api
           file: ./src/BugStore.Api/Dockerfile
           push: false
           tags: bugstore:test
 
   deploy:
-    needs: build-and-test
+    needs: build-test
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment: production
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Deploy to Railway
         uses: railwayapp/deploy-action@v1
         with:
           railway_token: ${{ secrets.RAILWAY_TOKEN }}
-          project_id: "70ef9ba2-4570-4897-99c9-e7d7300a515d"
-          service_id: "badd4cdb-d31f-4574-8e3a-3a47e48f460c" # SUBSTITUA PELO SEU SERVICE_ID
-          working_directory: "src/BugStore.Api" # Opcional, mas recomendado
+          project_id: 70ef9ba2-4570-4897-99c9-e7d7300a515d
+          service_id: badd4cdb-d31f-4574-8e3a-3a47e48f460c
+          working_directory: src/BugStore.Api
