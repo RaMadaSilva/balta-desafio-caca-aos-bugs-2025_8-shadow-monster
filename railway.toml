@@ -1,0 +1,2 @@
+[service]
+root = "src/BugStore.Api"
