@@ -65,7 +65,6 @@ jobs:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: railway environment ff30ac94-5f21-4e4e-b2d3-50b873727d8b
 
-      # Opcional: fixar o serviço (ID da URL que você enviou)
       - name: Deploy to Railway (service pinned)
         working-directory: ./src/BugStore.Api
         env:
