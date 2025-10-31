@@ -53,7 +53,7 @@ jobs:
 
       # --- ALTERAÇÃO CHAVE: Usando a Ação Oficial do Railway CLI ---
       - name: Deploy to Railway
-        uses: railwayapp/cli-action@v3
+        uses: railwayapp/action-cli@v3
         with:
           # O token é passado com segurança.
           token: ${{ secrets.RAILWAY_TOKEN }}
