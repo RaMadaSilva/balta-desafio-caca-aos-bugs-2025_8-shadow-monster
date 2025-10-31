@@ -30,7 +30,7 @@ jobs:
       - name: Validate Docker
         uses: docker/build-push-action@v5
         with:
-          context: ./src/BugStore.Api
+          context: ./src
           file: ./src/BugStore.Api/Dockerfile
           push: false
           tags: bugstore:test

@@ -1,43 +1,73 @@
-﻿# --- ETAPA 1: Base (Runtime) ---
+﻿# ============================================
+# ETAPA 1: Base Runtime (Imagem Final)
+# ============================================
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
 WORKDIR /app
 EXPOSE 8080
 
-# --- ETAPA 2: Build ---
+# ============================================
+# ETAPA 2: Build (Compilação)
+# ============================================
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
-# Copia apenas os .csproj para restaurar pacotes (cache eficiente)
+# ESTRATÉGIA DE CACHE: Copia apenas os arquivos .csproj primeiro
+# Isso permite que o Docker reutilize o cache da camada de restore
+# mesmo quando o código fonte muda, acelerando builds subsequentes
 COPY ["BugStore.Api/BugStore.Api.csproj", "BugStore.Api/"]
 COPY ["BugStore.Application/BugStore.Application.csproj", "BugStore.Application/"]
 COPY ["BugStore.Domain/BugStore.Domain.csproj", "BugStore.Domain/"]
 COPY ["BugStore.Infrastructure/BugStore.Infrastructure.csproj", "BugStore.Infrastructure/"]
 
-# Restaura pacotes
-RUN dotnet restore "./BugStore.Api/BugStore.Api.csproj"
+# Restaura as dependências NuGet (pode usar cache se .csproj não mudou)
+RUN dotnet restore "./BugStore.Api/BugStore.Api.csproj" \
+    --verbosity quiet \
+    --nologo
 
-# Copia todo o código
+# Agora copia todo o código fonte
 COPY . .
 
-# Compila
+# Compila o projeto
 WORKDIR "/src/BugStore.Api"
-RUN dotnet build "./BugStore.Api.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet build "./BugStore.Api.csproj" \
+    -c $BUILD_CONFIGURATION \
+    -o /app/build \
+    --no-restore \
+    --verbosity minimal \
+    --nologo
 
-# --- ETAPA 3: Publish ---
+# ============================================
+# ETAPA 3: Publish (Publicação)
+# ============================================
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./BugStore.Api.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./BugStore.Api.csproj" \
+    -c $BUILD_CONFIGURATION \
+    -o /app/publish \
+    /p:UseAppHost=false \
+    --no-build \
+    --verbosity minimal \
+    --nologo
 
-# --- ETAPA 4: Final (Runtime) ---
+# ============================================
+# ETAPA 4: Final (Imagem de Produção)
+# ============================================
 FROM base AS final
 WORKDIR /app
+
+# Copia apenas os arquivos publicados (otimização de tamanho)
 COPY --from=publish /app/publish .
 
-# CRUCIAL: Usa a porta do Railway (ou 8080 como fallback)
-ENV ASPNETCORE_URLS=http://0.0.0.0:${PORT:-8080}
+# Configura variáveis de ambiente
+# O Program.cs já configura a porta via UseUrls, mas manteremos isso como fallback
+# Railway define a variável PORT em runtime
+ENV ASPNETCORE_ENVIRONMENT=Production
+ENV ASPNETCORE_URLS=http://0.0.0.0:8080
+ENV DOTNET_RUNNING_IN_CONTAINER=true
 
-# REMOVA O USER (Railway não permite)
-# USER $APP_UID → COMENTADO
+# NOTA: Não use USER $APP_UID no Railway, pois pode causar problemas de permissão
+# O Railway gerencia isso automaticamente
 
+# Define o ponto de entrada
 ENTRYPOINT ["dotnet", "BugStore.Api.dll"]
