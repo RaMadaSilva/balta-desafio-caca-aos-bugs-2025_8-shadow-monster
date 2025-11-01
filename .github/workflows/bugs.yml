@@ -13,11 +13,11 @@ jobs:
   # ===========================================
   ci:
     runs-on: ubuntu-latest
-    
+
     # O output do status é usado para garantir que o deploy só rode se o CI for sucesso.
     outputs:
       status: ${{ job.status }}
-      
+
     steps:
       - name: Checkout do Código
         uses: actions/checkout@v4
@@ -25,18 +25,22 @@ jobs:
       - name: Setup .NET 9.0
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
-          
+          dotnet-version: "9.0.x"
+
       - name: Restore Dependencies
-        # Restaura as dependências para todos os projetos
-        run: dotnet restore
-        
-      - name: Run Tests (Exemplo)
-        # Adapte este comando para executar seus testes, se houver
-        run: echo "Seus comandos de teste vão aqui, ex: dotnet test --configuration Release"
-        
+        run: dotnet restore BugStore.sln
+        working-directory: ./src
+
+      - name: Build
+        run: dotnet build BugStore.sln --no-restore
+        working-directory: ./src
+
+      - name: Test
+        run: dotnet test BugStore.sln --no-build --verbosity normal
+        working-directory: ./src
+
       # Nota: A build da imagem Docker será feita pelo Render. Este job apenas valida o código.
-      
+
   # ===========================================
   # 2. Deploy Contínuo (CD) no Render
   # ===========================================
@@ -46,7 +50,7 @@ jobs:
     # Só executa se o job de CI for sucesso
     if: needs.ci.outputs.status == 'success'
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Disparar Novo Deploy no Render via API
         # Este comando HTTP POST força o Render a puxar e reconstruir o último commit
@@ -59,5 +63,5 @@ jobs:
           --header 'authorization: Bearer ${{ secrets.RENDER_API_KEY }}' \
           --header 'content-type: application/json' \
           --data '{}'
-          
+
           echo "Deploy do Render acionado com sucesso!"
