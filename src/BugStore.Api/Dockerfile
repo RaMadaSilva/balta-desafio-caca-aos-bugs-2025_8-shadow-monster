@@ -3,7 +3,6 @@
 # ============================================
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
 WORKDIR /app
-EXPOSE 8080
 
 # ============================================
 # ETAPA 2: Build (Compilação)
@@ -63,7 +62,6 @@ COPY --from=publish /app/publish .
 # O Program.cs já configura a porta via UseUrls, mas manteremos isso como fallback
 # Railway define a variável PORT em runtime
 ENV ASPNETCORE_ENVIRONMENT=Production
-ENV ASPNETCORE_URLS=http://0.0.0.0:8080
 ENV DOTNET_RUNNING_IN_CONTAINER=true
 
 # NOTA: Não use USER $APP_UID no Railway, pois pode causar problemas de permissão
